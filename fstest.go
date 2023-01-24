@@ -46,10 +46,6 @@ func (fsys MapFS) Stat(name string) (fs.FileInfo, error) {
 	return fstest.MapFS(fsys).Stat(name)
 }
 
-func (fsys MapFS) Sub(name string) (fs.FS, error) {
-	return fstest.MapFS(fsys).Sub(name)
-}
-
 func (fsys MapFS) ReadLink(name string) (string, error) {
 	if !fs.ValidPath(name) {
 		return "", &fs.PathError{"readlink", name, fs.ErrNotExist}
