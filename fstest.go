@@ -74,7 +74,12 @@ type subFS struct {
 }
 
 func (f *subFS) fullName(name string) string {
-	return f.name + "/" + name
+	if name == "." {
+		name = f.name
+	} else {
+		name = f.name + "/" + name
+	}
+	return name
 }
 
 func (f *subFS) Open(name string) (fs.File, error) {
