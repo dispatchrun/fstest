@@ -46,6 +46,14 @@ func (fsys MapFS) Stat(name string) (fs.FileInfo, error) {
 	return fstest.MapFS(fsys).Stat(name)
 }
 
+func (fsys MapFS) Sub(name string) (fs.FS, error) {
+	_, err := fs.Stat(fsys, name)
+	if err != nil {
+		return nil, err
+	}
+	return &subFS{fsys, name}, nil
+}
+
 func (fsys MapFS) ReadLink(name string) (string, error) {
 	if !fs.ValidPath(name) {
 		return "", &fs.PathError{"readlink", name, fs.ErrNotExist}
@@ -58,6 +66,23 @@ func (fsys MapFS) ReadLink(name string) (string, error) {
 		return "", &fs.PathError{"readlink", name, fs.ErrInvalid}
 	}
 	return string(file.Data), nil
+}
+
+type subFS struct {
+	fsys MapFS
+	name string
+}
+
+func (f *subFS) fullName(name string) string {
+	return f.name + "/" + name
+}
+
+func (f *subFS) Open(name string) (fs.File, error) {
+	return f.fsys.Open(f.fullName(name))
+}
+
+func (f *subFS) ReadLink(name string) (string, error) {
+	return f.fsys.ReadLink(f.fullName(name))
 }
 
 // https://github.com/golang/go/issues/49580
@@ -74,7 +99,7 @@ func readLink(fsys fs.FS, name string) (string, error) {
 	if f, ok := fsys.(readLinkFS); ok {
 		return f.ReadLink(name)
 	}
-	return "", equalErrorf(name, "symlink found in file system which does not implement fs.ReadLinkFS")
+	return "", equalErrorf(name, "symlink found in file system which does not implement fs.ReadLinkFS: %T", fsys)
 }
 
 const equalFSMinSize = 1024
