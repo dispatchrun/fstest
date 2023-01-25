@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/stealthrocket/fsinfo"
+	"github.com/stealthrocket/fslink"
 )
 
 func TestFS(fsys fs.FS, expected ...string) error {
@@ -90,22 +91,9 @@ func (f *subFS) ReadLink(name string) (string, error) {
 	return f.fsys.ReadLink(f.fullName(name))
 }
 
-// https://github.com/golang/go/issues/49580
-type readLinkFS interface {
-	ReadLink(string) (string, error)
-}
-
 var (
-	_ readLinkFS = (MapFS)(nil)
+	_ fslink.ReadLinkFS = (MapFS)(nil)
 )
-
-// TODO: replace with fs.ReadLink
-func readLink(fsys fs.FS, name string) (string, error) {
-	if f, ok := fsys.(readLinkFS); ok {
-		return f.ReadLink(name)
-	}
-	return "", equalErrorf(name, "symlink found in file system which does not implement fs.ReadLinkFS: %T", fsys)
-}
 
 const equalFSMinSize = 1024
 const equalFSBufSize = 32768
@@ -124,11 +112,11 @@ func EqualFSBuffer(a, b fs.FS, buf []byte) error {
 }
 
 func equalSymlink(source, target fs.FS, name string) error {
-	sourceLink, err := readLink(source, name)
+	sourceLink, err := fslink.ReadLink(source, name)
 	if err != nil {
 		return err
 	}
-	targetLink, err := readLink(target, name)
+	targetLink, err := fslink.ReadLink(target, name)
 	if err != nil {
 		return err
 	}
