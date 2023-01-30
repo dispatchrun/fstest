@@ -32,7 +32,19 @@ func (fsys MapFS) Glob(pattern string) ([]string, error) {
 }
 
 func (fsys MapFS) Open(name string) (fs.File, error) {
-	return fstest.MapFS(fsys).Open(name)
+	f, err := fstest.MapFS(fsys).Open(name)
+	if err != nil {
+		return nil, err
+	}
+	s, err := f.Stat()
+	if err != nil {
+		f.Close()
+		return nil, err
+	}
+	if (s.Mode().Perm() & 0400) != 0 {
+		return f, nil
+	}
+	return denyReadPermission{f}, nil
 }
 
 func (fsys MapFS) ReadDir(name string) ([]fs.DirEntry, error) {
@@ -94,6 +106,12 @@ func (f *subFS) ReadLink(name string) (string, error) {
 var (
 	_ fslink.ReadLinkFS = (MapFS)(nil)
 )
+
+type denyReadPermission struct{ fs.File }
+
+func (denyReadPermission) Read([]byte) (int, error) { return 0, fs.ErrPermission }
+
+func (denyReadPermission) ReadDir(int) ([]fs.DirEntry, error) { return nil, fs.ErrPermission }
 
 const equalFSMinSize = 1024
 const equalFSBufSize = 32768
