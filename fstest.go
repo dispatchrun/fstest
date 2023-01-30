@@ -41,10 +41,13 @@ func (fsys MapFS) Open(name string) (fs.File, error) {
 		f.Close()
 		return nil, err
 	}
-	if (s.Mode().Perm() & 0400) != 0 {
-		return f, nil
+	if s.IsDir() && fsys[name] == nil { // virtual directory?
+		return virtualDirectory{f.(fs.ReadDirFile)}, nil
 	}
-	return denyReadPermission{f}, nil
+	if (s.Mode().Perm() & 0400) == 0 {
+		return denyReadPermission{f}, nil
+	}
+	return f, nil
 }
 
 func (fsys MapFS) ReadDir(name string) ([]fs.DirEntry, error) {
@@ -112,6 +115,17 @@ type denyReadPermission struct{ fs.File }
 func (denyReadPermission) Read([]byte) (int, error) { return 0, fs.ErrPermission }
 
 func (denyReadPermission) ReadDir(int) ([]fs.DirEntry, error) { return nil, fs.ErrPermission }
+
+type virtualDirectory struct{ fs.ReadDirFile }
+
+func (d virtualDirectory) Stat() (fs.FileInfo, error) {
+	stat, err := d.ReadDirFile.Stat()
+	return virtualDirInfo{stat}, err
+}
+
+type virtualDirInfo struct{ fs.FileInfo }
+
+func (virtualDirInfo) Mode() fs.FileMode { return fs.ModeDir | 0700 }
 
 const equalFSMinSize = 1024
 const equalFSBufSize = 32768
