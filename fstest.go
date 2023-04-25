@@ -125,7 +125,7 @@ func (d virtualDirectory) Stat() (fs.FileInfo, error) {
 
 type virtualDirInfo struct{ fs.FileInfo }
 
-func (virtualDirInfo) Mode() fs.FileMode { return fs.ModeDir | 0700 }
+func (virtualDirInfo) Mode() fs.FileMode { return fs.ModeDir }
 
 const equalFSMinSize = 1024
 const equalFSBufSize = 32768
