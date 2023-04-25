@@ -1,6 +1,6 @@
 module github.com/stealthrocket/fstest
 
-go 1.19
+go 1.20
 
 require (
 	github.com/stealthrocket/fsinfo v0.1.1
